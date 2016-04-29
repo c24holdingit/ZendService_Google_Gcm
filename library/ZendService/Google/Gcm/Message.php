@@ -26,6 +26,16 @@ use Zend\Json\Json;
 class Message
 {
     /**
+     * @var string Normal priority
+     */
+    const PRIORITY_NORMAL = 'normal';
+    
+    /**
+     * @var string High priority
+     */
+    const PRIORITY_HIGH = 'high';
+    
+    /**
      * @var array
      */
     protected $registrationIds = array();
@@ -49,6 +59,11 @@ class Message
      * @var int
      */
     protected $timeToLive = 2419200;
+    
+    /**
+     * @var string
+     */
+    protected $priority = self::PRIORITY_NORMAL;
 
     /**
      * @var string
@@ -240,6 +255,32 @@ class Message
     {
         return $this->timeToLive;
     }
+    
+    /**
+     * Set Priority
+     *
+     * @param string $priority
+     * @return Message
+     */
+    function setPriority($priority)
+    {
+        if(!in_array($priority, array(self::PRIORITY_NORMAL, self::PRIORITY_HIGH))) {
+            throw new Exception\InvalidArgumentException('$priority must be either the value "normal" or "high"');
+        }
+        
+        $this->priority = $priority;
+        return $this;
+    }
+    
+    /**
+     * Get Priority
+     *
+     * @return string
+     */
+    public function getPriority()
+    {
+        return $this->priority;
+    }
 
     /**
      * Set Restricted Package Name
@@ -313,6 +354,9 @@ class Message
         }
         if ($this->timeToLive != 2419200) {
             $json['time_to_live'] = $this->timeToLive;
+        }
+        if ($this->priority != self::PRIORITY_NORMAL) {
+            $json['priority'] = $this->priority;
         }
         if ($this->restrictedPackageName) {
             $json['restricted_package_name'] = $this->restrictedPackageName;

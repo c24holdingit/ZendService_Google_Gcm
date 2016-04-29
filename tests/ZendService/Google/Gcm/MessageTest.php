@@ -126,6 +126,24 @@ class MessageTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($this->m->getTimeToLive(), 2419200);
         $this->assertNotContains('time_to_live', $this->m->toJson());
     }
+    
+    public function testExpectedPriorityBehavior()
+    {
+        $this->assertEquals('normal', $this->m->getPriority());
+        $this->assertNotContains('priority', $this->m->toJson());
+        $this->m->setPriority('high');
+        $this->assertEquals('high', $this->m->getPriority());
+        $this->assertContains('priority', $this->m->toJson());
+        $this->m->setPriority('normal');
+        $this->assertEquals('normal', $this->m->getPriority());
+        $this->assertNotContains('priority', $this->m->toJson());
+    }
+    
+    public function testInvalidPriorityThrowsException()
+    {
+        $this->setExpectedException('InvalidArgumentException');
+        $this->m->setPriority('test');
+    }
 
     public function testExpectedRestrictedPackageBehavior()
     {
