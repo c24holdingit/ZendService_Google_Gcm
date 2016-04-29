@@ -14,6 +14,8 @@ namespace ZendServiceTest\Google\Gcm;
 use PHPUnit\Framework\TestCase;
 use Zend\Http\Client\Adapter\Test;
 use Zend\Http\Client as HttpClient;
+use Zend\Http\Response as HttpResponse;
+use Zend\Http\Headers as HttpHeaders;
 use ZendService\Google\Gcm\Client;
 use ZendService\Google\Gcm\Message;
 
@@ -99,12 +101,47 @@ class ClientTest extends TestCase
         $this->httpAdapter->setResponse('HTTP/1.1 503 Service Unavailable'."\r\n\r\n");
         $this->gcmClient->send($this->message);
     }
+    
+    public function testSendThrowsExceptionWhenServiceUnavailableWithRetryAfter()
+    {
+        $response = new HttpResponse();
+        $response->setVersion('1.1');
+        $response->setStatusCode(503);
+        
+        $response->setHeaders(HttpHeaders::fromString('Retry-After: 30'));
+
+        $this->httpAdapter->setResponse($response);
+        
+        try {
+            $this->gcmClient->send($this->message);
+        } catch(\ZendService\Google\Exception\RuntimeException $e) {
+            $this->assertEquals('503 Server Unavailable; Retry After: 30', $e->getMessage());
+            $this->assertEquals(30, $e->getData('retry-after'));
+        }
+    }
 
     public function testSendThrowsExceptionWhenServerUnavailable()
     {
         $this->expectException('RuntimeException');
         $this->httpAdapter->setResponse('HTTP/1.1 500 Internal Server Error'."\r\n\r\n");
         $this->gcmClient->send($this->message);
+    }
+    
+    public function testSendThrowsExceptionWhenServerUnavailableWithRetryAfter()
+    {
+        $response = new HttpResponse();
+        $response->setVersion('1.1');
+        $response->setStatusCode(500);
+        $response->setHeaders(HttpHeaders::fromString('Retry-After: 30'));
+
+        $this->httpAdapter->setResponse($response);
+
+        try {
+            $this->gcmClient->send($this->message);
+        } catch(\ZendService\Google\Exception\RuntimeException $e) {
+            $this->assertEquals('500 Internal Server Error; Retry After: 30', $e->getMessage());
+            $this->assertEquals(30, $e->getData('retry-after'));
+        }
     }
 
     public function testSendThrowsExceptionWhenInvalidAuthToken()

@@ -18,4 +18,46 @@ namespace ZendService\Google\Exception;
  */
 class RuntimeException extends \RuntimeException
 {
+    protected $data = array();
+
+    /**
+     * Constructor
+     * 
+     * @param string $message
+     * @param integer $code
+     * @param \Exception $previous
+     * @param array $data
+     */
+    public function __construct($message = "", $code = 0, \Exception $previous = null, array $data = array())
+    {
+        parent::__construct($message, $code, $previous);
+        
+        $this->data = $data;
+    }
+    
+    /**
+     * Sets an information
+     * 
+     * @param mixed $key
+     * @param mixed $value
+     */
+    public function setData($key, $value)
+    {
+        $this->data[$key] = $value;
+    }
+    
+    /**
+     * Returns an information stored for that key
+     * 
+     * @param mixed $key
+     * @return mixed 
+     */
+    public function getData($key) 
+    {
+        if(!isset($this->data[$key])) {
+            return null;
+        }
+        
+        return $this->data[$key];
+    }
 }
