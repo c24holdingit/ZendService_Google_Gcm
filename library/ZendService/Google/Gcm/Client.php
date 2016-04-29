@@ -14,6 +14,7 @@ namespace ZendService\Google\Gcm;
 use ZendService\Google\Exception;
 use Zend\Http\Client as HttpClient;
 use Zend\Json\Json;
+use Zend\Http\Response as HttpResponse;
 
 /**
  * Google Cloud Messaging Client
@@ -113,23 +114,36 @@ class Client
                            ->setEncType('application/json')
                            ->send();
 
-        switch ($response->getStatusCode()) {
-            case 500:
-                throw new Exception\RuntimeException('500 Internal Server Error');
-                break;
-            case 503:
-                $exceptionMessage = '503 Server Unavailable';
-                if ($retry = $response->getHeaders()->get('Retry-After')) {
-                    $exceptionMessage .= '; Retry After: ' . $retry;
-                }
-                throw new Exception\RuntimeException($exceptionMessage);
-                break;
-            case 401:
-                throw new Exception\RuntimeException('401 Forbidden; Authentication Error');
-                break;
-            case 400:
-                throw new Exception\RuntimeException('400 Bad Request; invalid message');
-                break;
+        if($response->getStatusCode() == 500) {
+            
+            $retry = $this->getRetryAfter($response);
+            $message = '500 Internal Server Error';
+            
+            if($retry != null) {
+                $message .= '; Retry After: '.$retry;
+            }
+            
+            throw new Exception\RuntimeException($message, 500, null, array('retry-after' => $retry));
+            
+        } elseif($response->getStatusCode() == 503) {
+            
+            $retry = $this->getRetryAfter($response);
+            $message = '503 Server Unavailable';
+            
+            if($retry != null) {
+                $message .= '; Retry After: '.$retry;
+            }
+            
+            throw new Exception\RuntimeException($message, 500, null, array('retry-after' => $retry));
+            
+        } elseif($response->getStatusCode() == 401) {
+            
+            throw new Exception\RuntimeException('401 Forbidden; Authentication Error', 401);
+            
+        } elseif($response->getStatusCode() == 400) {
+            
+            throw new Exception\RuntimeException('400 Bad Request; invalid message', 400);
+            
         }
 
         if (!$response = Json::decode($response->getBody(), Json::TYPE_ARRAY)) {
@@ -137,5 +151,22 @@ class Client
         }
 
         return new Response($response, $message);
+    }
+    
+    /**
+     * Return the retry after header value if available
+     * 
+     * @param HttpResponse $response
+     * @return null|integer
+     */
+    private function getRetryAfter(HttpResponse $response)
+    {
+        $retry = $response->getHeaders()->get('Retry-After');
+        
+        if($retry !== false) {
+            return $retry->getFieldValue();
+        } else {
+            return null;
+        }
     }
 }
