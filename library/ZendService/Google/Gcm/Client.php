@@ -142,7 +142,7 @@ class Client
             
         } elseif($response->getStatusCode() == 400) {
             
-            throw new Exception\RuntimeException('400 Bad Request; invalid message', 400);
+            throw new Exception\RuntimeException(sprintf('400 Bad Request; %s', $response->getBody()), 400);
             
         }
 
